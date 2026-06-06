@@ -1,0 +1,74 @@
+
+{
+  "entities": {
+    "Store": {
+      "title": "Loja",
+      "description": "Unidade de negócio ou ponto de venda logístico. Acesso público total habilitado.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome da loja" },
+        "type": { "type": "string", "description": "Segmento (ex: Farmácia, Pizzaria)" },
+        "phone": { "type": "string", "description": "WhatsApp de contato" },
+        "fee": { "type": "number", "description": "Taxa de entrega base" },
+        "status": { "type": "string", "enum": ["Ativo", "Inativo"] },
+        "autoProcess": { "type": "boolean", "description": "Se ativado, processa entregas automáticas via Webhook" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string", "description": "ID do criador ou 'public'" }
+      },
+      "required": ["name", "status"]
+    },
+    "Delivery": {
+      "title": "Entrega",
+      "description": "Registro de entrega extraído via planilha ou IA.",
+      "type": "object",
+      "properties": {
+        "storeId": { "type": "string", "description": "Referência da loja de origem (opcional se for gasto puro)" },
+        "storeName": { "type": "string", "description": "Nome da loja para exibição rápida" },
+        "driverId": { "type": "string", "description": "Referência do motoboy (para planilhas de gastos)" },
+        "driverName": { "type": "string", "description": "Nome do motoboy para exibição rápida" },
+        "cleanedAddress": { "type": "string", "description": "Endereço processado" },
+        "zoneTag": { "type": "string", "description": "Etiqueta de zona logística" },
+        "fee": { "type": "number", "description": "Valor final da taxa (lucro ou gasto)" },
+        "type": { "type": "string", "enum": ["LUCRO", "GASTO"], "description": "Identifica se é receita de loja ou pagamento de motoboy" },
+        "status": { "type": "string", "enum": ["Pendente", "Em Trânsito", "Entregue"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "weekStart": { "type": "string", "format": "date", "description": "Início da semana de referência" },
+        "weekEnd": { "type": "string", "format": "date", "description": "Fim da semana de referência" },
+        "source": { "type": "string", "description": "Origem do dado" }
+      },
+      "required": ["cleanedAddress", "fee", "status"]
+    },
+    "Driver": {
+      "title": "Motoboy",
+      "description": "Entregador parceiro da plataforma.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome completo" },
+        "phone": { "type": "string", "description": "WhatsApp de contato" },
+        "plate": { "type": "string", "description": "Placa do veículo" },
+        "vehicle": { "type": "string", "description": "Tipo de veículo (ex: Moto, Carro)" },
+        "status": { "type": "string", "enum": ["Disponível", "Em Trânsito", "Inativo"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["name", "status"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/stores/{storeId}": {
+      "schema": { "$ref": "#/backend/entities/Store" },
+      "description": "Acesso público irrestrito para facilitar operações rápidas."
+    },
+    "/deliveries/{deliveryId}": {
+      "schema": { "$ref": "#/backend/entities/Delivery" },
+      "description": "Acesso público irrestrito para facilitar operações rápidas."
+    },
+    "/drivers/{driverId}": {
+      "schema": { "$ref": "#/backend/entities/Driver" },
+      "description": "Dados dos motoristas parceiros."
+    }
+  }
+}

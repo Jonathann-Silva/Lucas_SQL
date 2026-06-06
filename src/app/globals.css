@@ -1,0 +1,60 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 5% 8%;
+    --foreground: 0 0% 98%;
+    --card: 240 5% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 5% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 155 73% 59%;
+    --primary-foreground: 240 5% 8%;
+    --secondary: 191 91% 63%;
+    --secondary-foreground: 240 5% 8%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 191 91% 63%;
+    --accent-foreground: 240 5% 8%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 155 73% 59%;
+    --radius: 0.75rem;
+    --sidebar-background: 240 5% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 155 73% 59%;
+    --sidebar-primary-foreground: 240 5% 8%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-accent-foreground: 155 73% 59%;
+    --sidebar-border: 240 5% 15%;
+    --sidebar-ring: 155 73% 59%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+.glass-panel {
+  @apply bg-card/60 backdrop-blur-md border border-border;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  @apply w-1.5;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full;
+}

@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Delivery {
+  id             String   @id @default(cuid())
+  timestamp      DateTime @default(now())
+  type           String   // "LUCRO" | "GASTO"
+  storeName      String?
+  storeId        String?
+  driverName     String?
+  driverId       String?
+  fee            Float
+  status         String   // "Concluído" | "Entregue" | etc
+  cleanedAddress String   @default("")
+  zoneTag        String   @default("")
+  source         String   @default("")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Store {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("")
+  phone       String   @default("")
+  status      String   // "Ativo" | "Inativo"
+  autoProcess Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Driver {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String   @default("")
+  plate       String   @default("")
+  vehicle     String   @default("")
+  status      String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

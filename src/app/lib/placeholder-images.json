@@ -1,0 +1,28 @@
+{
+  "placeholderImages": [
+    {
+      "id": "ops-lead",
+      "description": "Professional headshot of a logistics operations lead",
+      "imageUrl": "https://picsum.photos/seed/opslead/200/200",
+      "imageHint": "professional man"
+    },
+    {
+      "id": "logistics-bg",
+      "description": "Futuristic automated logistics warehouse",
+      "imageUrl": "https://picsum.photos/seed/logistics/1200/400",
+      "imageHint": "modern warehouse"
+    },
+    {
+      "id": "heat-map",
+      "description": "Logistics heat map overlaying a city map",
+      "imageUrl": "https://picsum.photos/seed/heatmap/600/400",
+      "imageHint": "city map"
+    },
+    {
+      "id": "app-logo",
+      "description": "Logotipo de corrida com uma motocicleta em alta velocidade",
+      "imageUrl": "https://thumbs.dreamstime.com/b/logotipo-de-corrida-com-s%C3%ADmbolo-uma-motocicleta-em-alta-velocidade-o-moto-monocrom%C3%A1tica-estilo-preto-e-branco-simples-sem-330798901.jpg",
+      "imageHint": "motorcycle logo"
+    }
+  ]
+}

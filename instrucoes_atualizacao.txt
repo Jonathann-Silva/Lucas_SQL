@@ -1,0 +1,31 @@
+================================================================================
+PASSO A PASSO PARA ATUALIZAR O APP NO SERVIDOR ORACLE
+================================================================================
+
+Como o código local foi corrigido e testado com sucesso, siga as instruções abaixo
+para enviar as alterações para a produção no seu servidor Oracle:
+
+1. ENVIE AS ALTERAÇÕES PARA O SERVIDOR ORACLE:
+   - Faça o commit/push das alterações do seu computador local para o Git, 
+     ou transfira os arquivos alterados diretamente para a pasta do projeto
+     no seu servidor Oracle.
+
+2. ATUALIZE AS TABELAS DO BANCO DE DADOS (POSTGRESQL):
+   - Acesse o terminal do seu servidor Oracle.
+   - Navegue até a pasta do projeto.
+   - Execute o seguinte comando para atualizar a estrutura das tabelas no banco de dados:
+     
+     npx prisma db push
+
+3. ATUALIZE AS DEPENDÊNCIAS (SE NECESSÁRIO):
+   - Se você não tiver rodado a instalação de dependências no servidor ainda, execute:
+     
+     npm install
+
+4. REINICIE O APLICATIVO:
+   - Reinicie o processo do Next.js (usando PM2 ou o gerenciador de processos que 
+     estiver rodando em produção) para carregar as novas APIs.
+
+================================================================================
+Pronto! As edições e exclusões de lojas, motoboys e corridas funcionarão normalmente.
+================================================================================

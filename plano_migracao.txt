@@ -1,0 +1,50 @@
+================================================================================
+PLANO DE MIGRAÇÃO: FIREBASE PARA POSTGRESQL (MANTENDO FRONTEND INTACTO)
+================================================================================
+
+STATUS ATUAL:
+Os arquivos do código já foram todos modificados e estão prontos! 
+O front-end continuará funcionando normalmente sem perceber que mudou para SQL.
+
+--------------------------------------------------------------------------------
+O QUE FOI ALTERADO NO PROJETO:
+--------------------------------------------------------------------------------
+1. package.json: Adicionadas dependências do Prisma e Prisma Client.
+2. prisma/schema.prisma: Criado o schema com as tabelas de Delivery, Store e Driver.
+3. src/lib/prisma.ts: Singleton do cliente Prisma para conexões.
+4. src/app/api/deliveries/route.ts: API para ler/gravar corridas no SQL.
+5. src/app/api/stores/route.ts: API para ler/gravar lojas no SQL.
+6. src/lib/firestore-mock.ts: O adaptador que emula as funções do Firebase Firestore.
+7. src/firebase/firestore/use-collection.tsx: Modificado para consultar nossa API local com polling automático de 5 segundos (simulando tempo real).
+8. src/app/page.tsx: Atualizadas as importações para usarem o firestore-mock.
+
+--------------------------------------------------------------------------------
+COMO VOCÊ INSTALOU O POSTGRES NA SUA VPS ORACLE:
+--------------------------------------------------------------------------------
+Caso precise revisar o que rodou na VPS:
+1. Instalou postgres e postgresql-contrib.
+2. Criou o DB 'lucaslogistica' e usuário 'admin_lucas'.
+3. Liberou conexões externas no postgresql.conf (listen_addresses = '*') e pg_hba.conf.
+4. Reiniciou o postgresql.
+5. (Lembrete) Liberar porta 5432 no painel web da Oracle Cloud.
+
+--------------------------------------------------------------------------------
+PASSOS PARA CONTINUAR QUANDO VOLTAR (NO SEU COMPUTADOR LOCAL):
+--------------------------------------------------------------------------------
+
+1. Renomeie o arquivo `.env.example` para `.env` na raiz do seu projeto.
+2. Dentro do `.env`, adicione a sua URL do Banco de Dados PostgreSQL configurado na VPS:
+   DATABASE_URL="postgresql://admin_lucas:SUA_SENHA_AQUI@IP_DA_VPS:5432/lucaslogistica?schema=public"
+
+3. No terminal da pasta do seu projeto, instale as dependências:
+   npm install
+
+4. Envie as tabelas para a sua VPS da Oracle:
+   npx prisma db push
+
+5. Execute o projeto para testar:
+   npm run dev
+
+================================================================================
+Desenvolvido por Antigravity. Até mais tarde!
+================================================================================
