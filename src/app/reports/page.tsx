@@ -97,7 +97,7 @@ export default function ReportsPage() {
   const filteredDeliveries = useMemo(() => {
     if (!deliveries) return [];
     
-    return deliveries.filter((d: any) => {
+    const filtered = deliveries.filter((d: any) => {
       const deliveryDate = d.timestamp?.toDate ? d.timestamp.toDate() : new Date(d.timestamp);
       
       const isInRange = isWithinInterval(deliveryDate, {
@@ -115,6 +115,12 @@ export default function ReportsPage() {
         d.driverName?.toLowerCase().includes(search.toLowerCase());
 
       return isInRange && isTypeMatch && isStoreMatch && isSearchMatch;
+    });
+
+    return filtered.sort((a: any, b: any) => {
+      const dateA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
+      const dateB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
+      return dateA.getTime() - dateB.getTime();
     });
   }, [deliveries, startDate, endDate, reportType, selectedStore, search]);
 

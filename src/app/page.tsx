@@ -95,7 +95,7 @@ export default function Dashboard() {
     const intervalStart = startOfDay(parseISO(startDate));
     const intervalEnd = endOfDay(parseISO(endDate));
 
-    return allDeliveries.filter((d: any) => {
+    const filtered = allDeliveries.filter((d: any) => {
       const deliveryDate = getDeliveryDate(d.timestamp);
       if (!deliveryDate) return false;
 
@@ -103,6 +103,12 @@ export default function Dashboard() {
         start: intervalStart,
         end: intervalEnd
       });
+    });
+
+    return filtered.sort((a: any, b: any) => {
+      const dateA = getDeliveryDate(a.timestamp) || new Date(0);
+      const dateB = getDeliveryDate(b.timestamp) || new Date(0);
+      return dateA.getTime() - dateB.getTime();
     });
   }, [allDeliveries, startDate, endDate]);
 
@@ -357,7 +363,7 @@ export default function Dashboard() {
                       </td>
                     </tr>
                   ) : (
-                    filteredDeliveries?.slice(0, 10).map((act: any) => {
+                    filteredDeliveries?.slice(-10).map((act: any) => {
                       const date = getDeliveryDate(act.timestamp);
                       const isFrete = act.storeName?.toLowerCase().includes("frete pago") || act.storeId === "frete_pago_geral";
                       return (
