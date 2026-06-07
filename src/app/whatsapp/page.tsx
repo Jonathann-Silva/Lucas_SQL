@@ -24,8 +24,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Lock,
-  Calendar
+  Calendar,
+  AlertTriangle
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFirestore, useCollection, useUser } from "@/firebase";
 import { collection, query, orderBy, addDoc } from "@/lib/firestore-mock";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +58,7 @@ export default function ExcelImportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importGroups, setImportGroups] = useState<ImportGroup[]>([]);
+  const [ignoredSheets, setIgnoredSheets] = useState<any[]>([]);
   const [fileName, setFileName] = useState("");
   const [importType, setImportType] = useState<"LUCRO" | "GASTO" | null>(null);
   
@@ -117,6 +120,7 @@ export default function ExcelImportPage() {
     setFileName(file.name);
     setIsProcessing(true);
     setImportGroups([]);
+    setIgnoredSheets([]);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -124,12 +128,23 @@ export default function ExcelImportPage() {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
         const newGroups: ImportGroup[] = [];
+        const newIgnored: any[] = [];
 
         wb.SheetNames.forEach(sheetName => {
           const ws = wb.Sheets[sheetName];
           const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
           
-          if (data.length <= 2) return;
+          const headers = (data[1] || data[0] || []).map(String);
+          
+          if (data.length <= 2) {
+            newIgnored.push({
+              sheetName,
+              rowsCount: data.length,
+              reason: "Aba com poucas linhas (vazia ou apenas cabeçalho)",
+              headers
+            });
+            return;
+          }
 
           const cleanSheetName = sheetName.toLowerCase().trim();
           const isSpecialStore = cleanSheetName.includes("frete pago") || cleanSheetName.includes("jean") || cleanSheetName.includes("moreira");
@@ -137,12 +152,20 @@ export default function ExcelImportPage() {
           const processedRows: ExcelRow[] = [];
           const lastRowIndex = importType === "GASTO" ? Math.min(data.length, 8) : data.length;
 
+          let emptyDateCount = 0;
+          let emptyFeeCount = 0;
+          let invalidFeeFormatCount = 0;
+
           for (let i = 2; i < lastRowIndex; i++) {
             const row = data[i];
             if (!row || row.length < 1) continue;
 
             const firstCol = String(row[0] || "").toUpperCase().trim();
-            if (firstCol.includes("TOTAL") || firstCol === "") continue;
+            if (firstCol.includes("TOTAL")) continue;
+            if (firstCol === "") {
+              emptyDateCount++;
+              continue;
+            }
 
             let rawDate: any;
             let rawAddress: any;
@@ -157,19 +180,28 @@ export default function ExcelImportPage() {
               if (isSpecialStore) {
                 rawPickupAddress = row[1]; // Coluna B para coleta
               }
-            } else {
+            } else if (importType === "GASTO") {
               rawDate = row[0];
               const quantity = row[2];
               rawAddress = quantity ? `Entregas: ${quantity}` : "Corrida Diária";
               rawFee = row[3];
             }
 
-            if (!rawFee || isNaN(parseFloat(String(rawFee).replace('R$', '').replace(/\./g, '').replace(',', '.')))) continue;
+            if (!rawFee) {
+              emptyFeeCount++;
+              continue;
+            }
+
+            const cleanFee = String(rawFee).replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+            const feeValue = parseFloat(cleanFee);
+            if (isNaN(feeValue)) {
+              invalidFeeFormatCount++;
+              continue;
+            }
 
             let finalAddress = String(rawAddress || "").trim();
             if (!finalAddress) finalAddress = "Endereço não informado";
             const addressStr = finalAddress;
-            const feeValue = parseFloat(String(rawFee).replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
 
             let pickupAddressStr = null;
             if (rawPickupAddress) {
@@ -196,7 +228,24 @@ export default function ExcelImportPage() {
             }
           }
 
-          if (processedRows.length === 0) return;
+          if (processedRows.length === 0) {
+            let reason = "Sem registros válidos. ";
+            if (emptyDateCount > 0) reason += `${emptyDateCount} linhas sem data na col. A. `;
+            if (emptyFeeCount > 0) reason += `${emptyFeeCount} linhas sem taxa na col. F. `;
+            if (invalidFeeFormatCount > 0) reason += `${invalidFeeFormatCount} linhas com taxa inválida. `;
+            if (reason === "Sem registros válidos. ") {
+              reason += "Verifique se a planilha segue o padrão de colunas esperado.";
+            }
+
+            newIgnored.push({
+              sheetName,
+              rowsCount: data.length,
+              reason: reason.trim(),
+              headers,
+              sampleRow: data[2] || data[1] || data[0]
+            });
+            return;
+          }
 
           let matchedEntity: any = null;
 
@@ -227,6 +276,7 @@ export default function ExcelImportPage() {
         });
 
         setImportGroups(newGroups);
+        setIgnoredSheets(newIgnored);
       } catch (error) {
         console.error("Erro ao processar Excel:", error);
       } finally {
@@ -417,66 +467,146 @@ export default function ExcelImportPage() {
           </div>
 
           <div className="lg:col-span-3 space-y-6">
-            <Card className="glass-panel">
-              <CardHeader className="border-b border-border/50">
-                <CardTitle className="text-lg">Abas Encontradas</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border/30">
-                  {isProcessing ? (
-                    <div className="py-20 text-center flex flex-col items-center gap-2 text-muted-foreground">
-                      <Loader2 className="animate-spin" size={32} />
-                      <span className="text-xs font-bold uppercase">Analisando abas...</span>
-                    </div>
-                  ) : importGroups.length === 0 ? (
-                    <div className="py-20 text-center flex flex-col items-center gap-3 text-muted-foreground opacity-50">
-                      <Layers size={48} />
-                      <span className="text-xs uppercase font-bold">Nenhum arquivo carregado</span>
-                    </div>
-                  ) : (
-                    importGroups.map((group, idx) => (
-                      <div key={idx} className="p-4 flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "h-10 w-10 rounded-lg flex items-center justify-center border",
-                            group.matchedId ? "bg-primary/10 border-primary/20 text-primary" : "bg-destructive/10 border-destructive/20 text-destructive"
-                          )}>
-                            <Layers size={18} />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-sm uppercase">{group.sheetName}</h4>
-                            <p className="text-[10px] text-muted-foreground font-bold">
-                              {group.rows.length} REGISTROS
-                            </p>
-                          </div>
+            <Tabs defaultValue="encontradas" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/50 h-11 p-1">
+                <TabsTrigger value="encontradas" className="font-bold text-xs uppercase h-9">
+                  Abas Encontradas ({importGroups.length})
+                </TabsTrigger>
+                <TabsTrigger value="ignoradas" className="font-bold text-xs uppercase h-9">
+                  Abas Ignoradas ({ignoredSheets.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="encontradas" className="mt-4">
+                <Card className="glass-panel">
+                  <CardHeader className="border-b border-border/50">
+                    <CardTitle className="text-lg">Sucesso no Vínculo</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-border/30">
+                      {isProcessing ? (
+                        <div className="py-20 text-center flex flex-col items-center gap-2 text-muted-foreground">
+                          <Loader2 className="animate-spin" size={32} />
+                          <span className="text-xs font-bold uppercase">Analisando abas...</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {group.matchedId ? (
-                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase">
-                              Vínculo: {group.matchedName}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-full uppercase">
-                              Sem Cadastro
-                            </span>
-                          )}
-                          {isAdmin && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => setImportGroups(prev => prev.filter((_, i) => i !== idx))}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          )}
+                      ) : importGroups.length === 0 ? (
+                        <div className="py-20 text-center flex flex-col items-center gap-3 text-muted-foreground opacity-50">
+                          <Layers size={48} />
+                          <span className="text-xs uppercase font-bold">Nenhum arquivo carregado</span>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      ) : (
+                        importGroups.map((group, idx) => (
+                          <div key={idx} className="p-4 flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                              <div className={cn(
+                                "h-10 w-10 rounded-lg flex items-center justify-center border",
+                                group.matchedId ? "bg-primary/10 border-primary/20 text-primary" : "bg-destructive/10 border-destructive/20 text-destructive"
+                              )}>
+                                <Layers size={18} />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-sm uppercase">{group.sheetName}</h4>
+                                <p className="text-[10px] text-muted-foreground font-bold">
+                                  {group.rows.length} REGISTROS
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {group.matchedId ? (
+                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full uppercase">
+                                  Vínculo: {group.matchedName}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-full uppercase">
+                                  Sem Cadastro
+                                </span>
+                              )}
+                              {isAdmin && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  onClick={() => setImportGroups(prev => prev.filter((_, i) => i !== idx))}
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="ignoradas" className="mt-4">
+                <Card className="glass-panel">
+                  <CardHeader className="border-b border-border/50">
+                    <CardTitle className="text-lg flex items-center gap-2 text-destructive">
+                      <AlertTriangle size={18} className="text-destructive" />
+                      Diagnóstico de Abas Ignoradas
+                    </CardTitle>
+                    <CardDescription>
+                      Confira abaixo as abas encontradas no Excel que foram descartadas pelo sistema e o motivo.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-border/30">
+                      {isProcessing ? (
+                        <div className="py-20 text-center flex flex-col items-center gap-2 text-muted-foreground">
+                          <Loader2 className="animate-spin" size={32} />
+                          <span className="text-xs font-bold uppercase">Analisando abas...</span>
+                        </div>
+                      ) : ignoredSheets.length === 0 ? (
+                        <div className="py-20 text-center flex flex-col items-center gap-3 text-muted-foreground opacity-50">
+                          <CheckCircle className="text-primary" size={48} />
+                          <span className="text-xs uppercase font-bold">Nenhuma aba foi ignorada!</span>
+                        </div>
+                      ) : (
+                        ignoredSheets.map((sheet, idx) => (
+                          <div key={idx} className="p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-center justify-center">
+                                  <AlertCircle size={16} />
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-sm uppercase">{sheet.sheetName}</h4>
+                                  <p className="text-[10px] text-muted-foreground font-bold">
+                                    {sheet.rowsCount} LINHAS DETECTADAS
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-full uppercase">
+                                Ignorada
+                              </span>
+                            </div>
+                            <div className="bg-muted/10 border border-border/30 rounded-lg p-3 space-y-2">
+                              <p className="text-xs font-medium text-foreground">
+                                <span className="font-bold text-destructive">Motivo:</span> {sheet.reason}
+                              </p>
+                              {sheet.headers && sheet.headers.length > 0 && (
+                                <div className="text-[10px] text-muted-foreground pt-1">
+                                  <span className="font-bold uppercase block mb-1">Colunas identificadas na aba:</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {sheet.headers.map((h: string, i: number) => (
+                                      <span key={i} className="bg-muted px-1.5 py-0.5 rounded text-[9px] border border-border/20">
+                                        {i}: {h || "(Vazia)"}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
