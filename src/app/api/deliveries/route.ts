@@ -36,6 +36,7 @@ export async function POST(request: Request) {
         status: body.status || 'Concluído',
         timestamp: body.timestamp ? new Date(body.timestamp) : new Date(),
         cleanedAddress: body.cleanedAddress || '',
+        pickupAddress: body.pickupAddress || null,
         zoneTag: body.zoneTag || '',
         source: body.source || '',
       }

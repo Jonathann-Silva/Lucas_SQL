@@ -35,6 +35,7 @@ import { format, startOfWeek, addDays, parseISO, isValid } from "date-fns";
 
 interface ExcelRow {
   endereco: string;
+  pickupAddress?: string | null;
   taxa?: number;
   zona?: string;
   data?: Date;
@@ -130,6 +131,9 @@ export default function ExcelImportPage() {
           
           if (data.length <= 2) return;
 
+          const cleanSheetName = sheetName.toLowerCase().trim();
+          const isSpecialStore = cleanSheetName.includes("frete pago") || cleanSheetName.includes("jean") || cleanSheetName.includes("moreira");
+
           const processedRows: ExcelRow[] = [];
           const lastRowIndex = importType === "GASTO" ? Math.min(data.length, 8) : data.length;
 
@@ -142,12 +146,17 @@ export default function ExcelImportPage() {
 
             let rawDate: any;
             let rawAddress: any;
+            let rawPickupAddress: any = null;
             let rawFee: any;
 
             if (importType === "LUCRO") {
               rawDate = row[0];
-              rawAddress = row[4];
+              rawAddress = row[4]; // Sempre coluna E para lojas normais
               rawFee = row[5];
+              
+              if (isSpecialStore) {
+                rawPickupAddress = row[1]; // Coluna B para coleta
+              }
             } else {
               rawDate = row[0];
               const quantity = row[2];
@@ -157,8 +166,16 @@ export default function ExcelImportPage() {
 
             if (!rawFee || isNaN(parseFloat(String(rawFee).replace('R$', '').replace(/\./g, '').replace(',', '.')))) continue;
 
-            const addressStr = String(rawAddress || "Endereço não informado").trim();
+            let finalAddress = String(rawAddress || "").trim();
+            if (!finalAddress) finalAddress = "Endereço não informado";
+            const addressStr = finalAddress;
             const feeValue = parseFloat(String(rawFee).replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+
+            let pickupAddressStr = null;
+            if (rawPickupAddress) {
+              const cleaned = String(rawPickupAddress).trim();
+              if (cleaned) pickupAddressStr = cleaned;
+            }
 
             let deliveryDate: Date | undefined;
             if (rawDate instanceof Date && isValid(rawDate)) {
@@ -171,6 +188,7 @@ export default function ExcelImportPage() {
             if (!isNaN(feeValue)) {
               processedRows.push({
                 endereco: addressStr,
+                pickupAddress: pickupAddressStr,
                 taxa: feeValue,
                 zona: importType === "LUCRO" ? "Importação Loja" : "Importação Moto",
                 data: deliveryDate
@@ -181,7 +199,6 @@ export default function ExcelImportPage() {
           if (processedRows.length === 0) return;
 
           let matchedEntity: any = null;
-          const cleanSheetName = sheetName.toLowerCase().trim();
 
           if (importType === "LUCRO") {
             matchedEntity = stores?.find((s: any) => 
@@ -233,6 +250,7 @@ export default function ExcelImportPage() {
         const promises = group.rows.map(row => 
           addDoc(collection(db, "deliveries"), {
             cleanedAddress: row.endereco,
+            pickupAddress: row.pickupAddress || null,
             fee: row.taxa || 0,
             zoneTag: row.zona || "Padrão",
             ...(importType === "LUCRO" ? {

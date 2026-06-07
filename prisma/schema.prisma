@@ -18,6 +18,7 @@ model Delivery {
   fee            Float
   status         String   // "Concluído" | "Entregue" | etc
   cleanedAddress String   @default("")
+  pickupAddress  String?
   zoneTag        String   @default("")
   source         String   @default("")
 

@@ -468,8 +468,13 @@ export default function ReportsPage() {
               onValueChange={setAccordionValue}
               className="space-y-3"
             >
-              {groupedDeliveries.map((group, idx) => (
-                <AccordionItem key={idx} value={`item-${idx}`} className="glass-panel border rounded-lg px-6">
+              {groupedDeliveries.map((group, idx) => {
+                const isSpecialStore = group.name.toLowerCase().includes("frete pago") || 
+                                       group.name.toLowerCase().includes("jean") || 
+                                       group.name.toLowerCase().includes("moreira");
+                
+                return (
+                  <AccordionItem key={idx} value={`item-${idx}`} className="glass-panel border rounded-lg px-6">
                   <AccordionTrigger className="hover:no-underline py-4">
                     <div className="flex items-center justify-between w-full pr-4">
                       <div className="flex items-center gap-4">
@@ -500,6 +505,7 @@ export default function ReportsPage() {
                         <thead>
                           <tr className="bg-muted/10 text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border">
                             <th className="px-4 py-3">Data</th>
+                            {isSpecialStore && <th className="px-4 py-3">Endereço Coleta</th>}
                             <th className="px-4 py-3">Endereço Destino</th>
                             <th className="px-4 py-3 text-right">Valor</th>
                             {isAdmin && <th className="px-4 py-3 text-right">Ações</th>}
@@ -513,6 +519,14 @@ export default function ReportsPage() {
                                   ? format(item.timestamp.toDate(), 'dd/MM')
                                   : format(new Date(item.timestamp), 'dd/MM')}
                               </td>
+                              {isSpecialStore && (
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin size={12} className="text-muted-foreground" />
+                                    <span className="text-xs truncate max-w-md">{item.pickupAddress || "-"}</span>
+                                  </div>
+                                </td>
+                              )}
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   <MapPin size={12} className="text-muted-foreground" />
@@ -541,7 +555,8 @@ export default function ReportsPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-              ))}
+                );
+              })}
             </Accordion>
           ) : (
             <Card className="glass-panel py-20 text-center flex flex-col items-center gap-3 text-muted-foreground opacity-50">
