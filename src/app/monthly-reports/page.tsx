@@ -57,9 +57,13 @@ export default function MonthlyReportsPage() {
   });
 
   // Busca todas as entregas (o cache local ajuda aqui)
-  const deliveriesQuery = useMemo(() => 
-    db ? query(collection(db, "deliveries"), orderBy("timestamp", "desc")) : null, 
-  [db]);
+  const deliveriesQuery = useMemo(() => {
+    if (!db) return null;
+    const yearInt = parseInt(selectedYear);
+    const startIso = startOfYear(new Date(yearInt, 0, 1)).toISOString();
+    const endIso = endOfYear(new Date(yearInt, 0, 1)).toISOString();
+    return query(collection(db, `deliveries?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`), orderBy("timestamp", "desc"));
+  }, [db, selectedYear]);
 
   const { data: deliveries, loading } = useCollection(deliveriesQuery);
 

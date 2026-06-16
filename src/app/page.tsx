@@ -69,7 +69,12 @@ export default function Dashboard() {
   };
 
   // Busca entregas e lojas
-  const deliveriesQuery = useMemo(() => db ? query(collection(db, "deliveries"), orderBy("timestamp", "desc")) : null, [db]);
+  const deliveriesQuery = useMemo(() => {
+    if (!db) return null;
+    const startIso = startOfDay(parseISO(startDate)).toISOString();
+    const endIso = endOfDay(parseISO(endDate)).toISOString();
+    return query(collection(db, `deliveries?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`), orderBy("timestamp", "desc"));
+  }, [db, startDate, endDate]);
   const storesQuery = useMemo(() => db ? query(collection(db, "stores")) : null, [db]);
 
   const { data: allDeliveries, loading: loadingDeliveries } = useCollection(deliveriesQuery);

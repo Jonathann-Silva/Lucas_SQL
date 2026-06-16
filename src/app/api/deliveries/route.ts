@@ -4,8 +4,19 @@ import { prisma } from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    // Podemos adicionar filtros de data aqui via searchParams se necessário
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+    
+    const whereClause: any = {};
+    if (start && end) {
+      whereClause.timestamp = {
+        gte: new Date(start),
+        lte: new Date(end)
+      };
+    }
+
     const deliveries = await prisma.delivery.findMany({
+      where: whereClause,
       orderBy: { timestamp: 'desc' },
     });
 

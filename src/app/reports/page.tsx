@@ -72,7 +72,12 @@ export default function ReportsPage() {
 
   const storesQuery = useMemo(() => db ? query(collection(db, "stores"), orderBy("name")) : null, [db]);
   const driversQuery = useMemo(() => db ? query(collection(db, "drivers"), orderBy("name")) : null, [db]);
-  const deliveriesQuery = useMemo(() => db ? query(collection(db, "deliveries"), orderBy("timestamp", "asc")) : null, [db]);
+  const deliveriesQuery = useMemo(() => {
+    if (!db) return null;
+    const startIso = startOfDay(parseISO(startDate)).toISOString();
+    const endIso = endOfDay(parseISO(endDate)).toISOString();
+    return query(collection(db, `deliveries?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`), orderBy("timestamp", "asc"));
+  }, [db, startDate, endDate]);
 
   const { data: stores } = useCollection(storesQuery);
   const { data: drivers } = useCollection(driversQuery);
