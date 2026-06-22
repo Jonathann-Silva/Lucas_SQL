@@ -504,12 +504,18 @@ export default function ExcelImportPage() {
                               )}>
                                 <Layers size={18} />
                               </div>
-                              <div>
-                                <h4 className="font-bold text-sm uppercase">{group.sheetName}</h4>
-                                <p className="text-[10px] text-muted-foreground font-bold">
-                                  {group.rows.length} REGISTROS
-                                </p>
-                              </div>
+                                <div>
+                                  <h4 className="font-bold text-sm uppercase">{group.sheetName}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] text-muted-foreground font-bold">
+                                      {group.rows.length} REGISTROS
+                                    </p>
+                                    <span className="text-[10px] text-muted-foreground/50">•</span>
+                                    <p className="text-[10px] text-primary font-bold">
+                                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(group.rows.reduce((sum, row) => sum + (row.taxa || 0), 0))}
+                                    </p>
+                                  </div>
+                                </div>
                             </div>
                             <div className="flex items-center gap-3">
                               {group.matchedId ? (
